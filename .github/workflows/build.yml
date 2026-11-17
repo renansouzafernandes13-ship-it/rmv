@@ -1,0 +1,30 @@
+name: Build RMV
+on: workflow_dispatch
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Criar projeto base
+        run: |
+          npx create-expo-app@latest app --template blank --yes
+          cp App.js bleService.js app.json app/
+          cd app
+          npx expo install react-native-ble-plx
+      - name: Gerar projeto iOS
+        working-directory: app
+        run: npx expo prebuild --platform ios
+      - name: Compilar
+        working-directory: app/ios
+        run: |
+          xcodebuild -workspace RMV.xcworkspace -scheme RMV -configuration Release -sdk iphoneos -derivedDataPath build CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
+          mkdir Payload
+          cp -r build/Build/Products/Release-iphoneos/RMV.app Payload/
+          zip -r RMV.ipa Payload
+      - uses: actions/upload-artifact@v4
+        with:
+          name: RMV-ipa
+          path: app/ios/RMV.ipa
